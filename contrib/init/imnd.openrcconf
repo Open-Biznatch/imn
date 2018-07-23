@@ -1,0 +1,26 @@
+# /etc/conf.d/imnd: config file for /etc/init.d/imnd
+
+# Config file location
+#BITCOIND_CONFIGFILE="/etc/imn/imn.conf"
+
+# What directory to write pidfile to?  (created and owned by $BITCOIND_USER)
+#BITCOIND_PIDDIR="/var/run/imnd"
+
+# What filename to give the pidfile
+#BITCOIND_PIDFILE="${BITCOIND_PIDDIR}/imnd.pid"
+
+# Where to write imnd data (be mindful that the blockchain is large)
+#BITCOIND_DATADIR="/var/lib/imnd"
+
+# User and group to own imnd process
+#BITCOIND_USER="imn"
+#BITCOIND_GROUP="imn"
+
+# Path to imnd executable
+#BITCOIND_BIN="/usr/bin/imnd"
+
+# Nice value to run imnd under
+#BITCOIND_NICE=0
+
+# Additional options (avoid -conf and -datadir, use flags above)
+BITCOIND_OPTS=""

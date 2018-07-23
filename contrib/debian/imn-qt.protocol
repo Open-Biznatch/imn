@@ -1,0 +1,11 @@
+[Protocol]
+exec=imn-qt '%u'
+protocol=imn
+input=none
+output=none
+helper=true
+listing=
+reading=false
+writing=false
+makedir=false
+deleting=false

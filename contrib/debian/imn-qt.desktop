@@ -1,0 +1,12 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=Imn
+Comment=Imn P2P Cryptocurrency
+Comment[fr]=Imn, monnaie virtuelle cryptographique pair à pair
+Comment[tr]=Imn, eşten eşe kriptografik sanal para birimi
+Exec=imn-qt %u
+Terminal=false
+Type=Application
+Icon=imn128
+MimeType=x-scheme-handler/imn;
+Categories=Office;Finance;
