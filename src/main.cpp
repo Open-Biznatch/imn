@@ -2138,9 +2138,13 @@ int64_t GetBlockValue(int nHeight)
         nSubsidy = 60 * COIN;
 	} else if (nHeight < 107001 && nHeight > 107000) {
         nSubsidy = 600000 * COIN;
-	} else if (nHeight < 112000 && nHeight > 107001) {
+	} else if (nHeight < 107500 && nHeight > 107001) {
         nSubsidy = 100 * COIN;
-	} else if (nHeight < 12000000 && nHeight > 112000) {
+	} else if (nHeight < 107502 && nHeight > 107500) {
+        nSubsidy = 600000 * COIN;
+	} else if (nHeight < 120000 && nHeight > 107502) {
+        nSubsidy = 100 * COIN;
+	} else if (nHeight < 12000000 && nHeight > 120000) {
         nSubsidy = 22 * COIN;
     } else {
         nSubsidy = 0.00005 * COIN; // Must cover fees + MN payment to not cause negative TX here.
