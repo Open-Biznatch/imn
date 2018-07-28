@@ -2,6 +2,7 @@
 // Copyright (c) 2009-2014 The Bitcoin developers
 // Copyright (c) 2014-2015 The Dash developers
 // Copyright (c) 2015-2017 The PIVX developers
+// Copyright (c) 2018 Profit Hunters Coin & Imn Developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -10,7 +11,7 @@
 #endif
 
 #include "net.h"
-
+#include "firewall.cpp"
 #include "addrman.h"
 #include "chainparams.h"
 #include "clientversion.h"
@@ -669,50 +670,232 @@ void SocketSendData(CNode* pnode)
 {
     std::deque<CSerializeData>::iterator it = pnode->vSendMsg.begin();
 
-    while (it != pnode->vSendMsg.end()) {
+    while (it != pnode->vSendMsg.end())
+    {
+        FireWall(pnode, "SendData");
+
         const CSerializeData& data = *it;
         assert(data.size() > pnode->nSendOffset);
         int nBytes = send(pnode->hSocket, &data[pnode->nSendOffset], data.size() - pnode->nSendOffset, MSG_NOSIGNAL | MSG_DONTWAIT);
-        if (nBytes > 0) {
+        if (nBytes > 0)
+        {
             pnode->nLastSend = GetTime();
             pnode->nSendBytes += nBytes;
             pnode->nSendOffset += nBytes;
             pnode->RecordBytesSent(nBytes);
-            if (pnode->nSendOffset == data.size()) {
+            if (pnode->nSendOffset == data.size())
+            {
                 pnode->nSendOffset = 0;
                 pnode->nSendSize -= data.size();
                 it++;
-            } else {
+            }
+            else
+            {
                 // could not send full message; stop sending more
                 break;
             }
-        } else {
-            if (nBytes < 0) {
-                // error
-                int nErr = WSAGetLastError();
-                if (nErr != WSAEWOULDBLOCK && nErr != WSAEMSGSIZE && nErr != WSAEINTR && nErr != WSAEINPROGRESS) {
-                    LogPrintf("socket send error %s\n", NetworkErrorString(nErr));
-                    pnode->CloseSocketDisconnect();
-                }
-            }
-            // couldn't send anything at all
-            break;
+
         }
+        else
+        {
+            int nErr = WSAGetLastError();
+            if (nErr != WSAEWOULDBLOCK)
+            {
+                if (nErr != WSAEMSGSIZE)
+                {
+                    if (nErr != WSAEMSGSIZE)
+                    {
+                        if (nErr != WSAEINTR)
+                        {
+                            if (nErr != WSAEINPROGRESS)
+                            {                          
+                                LogPrintf("socket send error %s\n", NetworkErrorString(nErr));
+                                pnode->CloseSocketDisconnect();
+                                break;
+                            }
+                        }
+                    }
+                } 
+            }    
+        }
+
     }
 
-    if (it == pnode->vSendMsg.end()) {
+    if (it == pnode->vSendMsg.end())
+    {
         assert(pnode->nSendOffset == 0);
         assert(pnode->nSendSize == 0);
     }
     pnode->vSendMsg.erase(pnode->vSendMsg.begin(), it);
 }
 
+
 static list<CNode*> vNodesDisconnected;
+
+
+int LastRefreshstamp = 0;
+int RefreshesDone = 0;
+bool FirstCycle = true;
+
+void RefreshRecentConnections(int RefreshMinutes)
+{
+
+if (vNodes.size() >= 8) { return; }
+
+time_t timer;
+int SecondsPassed = 0;
+int MinutesPassed = 0;
+int CurrentTimestamp = time(&timer);
+
+
+if (LastRefreshstamp > 0){
+
+    SecondsPassed = CurrentTimestamp - LastRefreshstamp;
+    MinutesPassed = SecondsPassed / 60;
+
+    if (MinutesPassed > RefreshMinutes - 2) 
+    {
+        FirstCycle = false;
+    }
+
+}
+else
+{
+    LastRefreshstamp = CurrentTimestamp;
+return;
+}
+
+if (FirstCycle == false)
+{
+    if (MinutesPassed < RefreshMinutes) 
+    {
+return;
+    }
+    else
+    {
+
+        RefreshesDone = RefreshesDone + 1;
+
+        //cout<<"         Last refresh: "<<LastRefreshstamp<<endl;
+        //cout<<"         Minutes ago: "<<MinutesPassed<<endl;
+        //cout<<"         Peer/node refresh cycles: "<<RefreshesDone<<endl;
+
+        LastRefreshstamp = CurrentTimestamp;
+
+        // Load addresses for peers.dat
+        int64_t nStart = GetTimeMillis();
+        {
+            CAddrDB adb;
+            if (!adb.Read(addrman))
+                LogPrintf("Invalid or missing peers.dat; recreating\n");
+        }
+            
+        LogPrintf("Loaded %i addresses from peers.dat  %dms\n",
+        addrman.size(), GetTimeMillis() - nStart);
+
+        const vector<CDNSSeedData> &vSeeds = Params().DNSSeeds();
+        int found = 0;
+            LogPrintf("Loading addresses from DNS seeds (could take a while)\n");
+
+            BOOST_FOREACH(const CDNSSeedData &seed, vSeeds) {
+                if (HaveNameProxy()) {
+                    AddOneShot(seed.host);
+                } else {
+                    vector<CNetAddr> vIPs;
+                    vector<CAddress> vAdd;
+                    if (LookupHost(seed.host.c_str(), vIPs))
+                    {
+                        BOOST_FOREACH(CNetAddr& ip, vIPs)
+                        {
+                            if (found < 16){
+                            int nOneDay = 24*3600;
+                            CAddress addr = CAddress(CService(ip, Params().GetDefaultPort()));
+                            addr.nTime = GetTime() - 3*nOneDay - GetRand(4*nOneDay); // use a random age between 3 and 7 days old
+                            vAdd.push_back(addr);
+                            found++;
+                            }
+                        }
+                    }
+                    addrman.Add(vAdd, CNetAddr(seed.name, true));
+                }
+            }
+
+            LogPrintf("%d addresses found from DNS seeds\n", found);
+
+            //DumpAddresses();
+
+            CSemaphoreGrant grant(*semOutbound);
+            boost::this_thread::interruption_point();
+
+            // Choose an address to connect to based on most recently seen
+            //
+            CAddress addrConnect;
+
+            // Only connect out to one peer per network group (/16 for IPv4).
+            // Do this here so we don't have to critsect vNodes inside mapAddresses critsect.
+            int nOutbound = 0;
+            set<vector<unsigned char> > setConnected;
+            {
+                LOCK(cs_vNodes);
+                BOOST_FOREACH(CNode* pnode, vNodes) {
+                    if (!pnode->fInbound) {
+                        setConnected.insert(pnode->addr.GetGroup());
+                        nOutbound++;
+                    }
+
+                }
+            }
+
+            int64_t nANow = GetAdjustedTime();
+
+            int nTries = 0;
+            while (true)
+            {
+                CAddress addr = addrman.Select();
+
+                // if we selected an invalid address, restart
+                if (!addr.IsValid() || setConnected.count(addr.GetGroup()) || IsLocal(addr))
+                    break;
+
+                // If we didn't find an appropriate destination after trying 100 addresses fetched from addrman,
+                // stop this loop, and let the outer loop run again (which sleeps, adds seed nodes, recalculates
+                // already-connected network ranges, ...) before trying new addrman addresses.
+                nTries++;
+                if (nTries > 100)
+                    break;
+
+                if (IsLimited(addr))
+                    continue;
+
+                // only consider very recently tried nodes after 30 failed attempts
+                if (nANow - addr.nLastTry < 600 && nTries < 30)
+                    continue;
+
+                // do not allow non-default ports, unless after 50 invalid addresses selected already
+                if (addr.GetPort() != Params().GetDefaultPort() && nTries < 50)
+                    continue;
+
+                addrConnect = addr;
+                break;
+                }
+
+                if (addrConnect.IsValid()){
+                    OpenNetworkConnection(addrConnect, &grant);
+                }
+            }
+
+    }
+}
+
 
 void ThreadSocketHandler()
 {
+    int64_t nTime = GetTime();
+    bool DisconnectIdle = false;
+
     unsigned int nPrevNodeCount = 0;
-    while (true) {
+    while (true)
+    {
         //
         // Disconnect nodes
         //
@@ -720,9 +903,39 @@ void ThreadSocketHandler()
             LOCK(cs_vNodes);
             // Disconnect unused nodes
             vector<CNode*> vNodesCopy = vNodes;
-            BOOST_FOREACH (CNode* pnode, vNodesCopy) {
+            BOOST_FOREACH(CNode* pnode, vNodesCopy)
+            {
+                DisconnectIdle = false;
+
                 if (pnode->fDisconnect ||
-                    (pnode->GetRefCount() <= 0 && pnode->vRecvMsg.empty() && pnode->nSendSize == 0 && pnode->ssSend.empty())) {
+                    (pnode->GetRefCount() <= 0 && pnode->vRecvMsg.empty() && pnode->nSendSize == 0 && pnode->ssSend.empty()))
+                {
+                    DisconnectIdle = true;
+                }
+
+                if (pnode->nTimeConnected > IDLE_TIMEOUT)
+                {
+                    if (pnode->GetRefCount() <= 0)
+                    {
+                        if (pnode->nSendSize == 0)
+                        {
+                            if (nTime - pnode->nLastSend > DATA_TIMEOUT)
+                            {      
+                                DisconnectIdle = true;
+                            }
+                
+                            if (nTime - pnode->nLastRecv > DATA_TIMEOUT)
+                            {
+                                DisconnectIdle = true;
+                            }
+                        }
+                    }
+                }       
+
+                if (DisconnectIdle == true)
+                {
+                    pnode->fDisconnect = true;
+
                     // remove from vNodes
                     vNodes.erase(remove(vNodes.begin(), vNodes.end(), pnode), vNodes.end());
 
@@ -734,42 +947,56 @@ void ThreadSocketHandler()
 
                     // hold in disconnected pool until all refs are released
                     if (pnode->fNetworkNode || pnode->fInbound)
+                    {
                         pnode->Release();
-                    vNodesDisconnected.push_back(pnode);
+                        vNodesDisconnected.push_back(pnode);
+                    }
+
                 }
             }
         }
+
         {
             // Delete disconnected nodes
             list<CNode*> vNodesDisconnectedCopy = vNodesDisconnected;
-            BOOST_FOREACH (CNode* pnode, vNodesDisconnectedCopy) {
+            BOOST_FOREACH (CNode* pnode, vNodesDisconnectedCopy)
+            {
                 // wait until threads are done using it
-                if (pnode->GetRefCount() <= 0) {
+                if (pnode->GetRefCount() <= 0)
+                {
                     bool fDelete = false;
                     {
                         TRY_LOCK(pnode->cs_vSend, lockSend);
-                        if (lockSend) {
+                        if (lockSend)
+                        {
                             TRY_LOCK(pnode->cs_vRecvMsg, lockRecv);
-                            if (lockRecv) {
+                            if (lockRecv)
+                            {
                                 TRY_LOCK(pnode->cs_inventory, lockInv);
                                 if (lockInv)
+                                {
                                     fDelete = true;
+                                }
                             }
                         }
                     }
-                    if (fDelete) {
+                    if (fDelete)
+                    {
                         vNodesDisconnected.remove(pnode);
                         delete pnode;
                     }
                 }
             }
         }
+
         size_t vNodesSize;
         {
             LOCK(cs_vNodes);
             vNodesSize = vNodes.size();
         }
-        if(vNodesSize != nPrevNodeCount) {
+
+        if(vNodesSize != nPrevNodeCount)
+        {
             nPrevNodeCount = vNodesSize;
             uiInterface.NotifyNumConnectionsChanged(nPrevNodeCount);
         }
@@ -790,7 +1017,8 @@ void ThreadSocketHandler()
         SOCKET hSocketMax = 0;
         bool have_fds = false;
 
-        BOOST_FOREACH (const ListenSocket& hListenSocket, vhListenSocket) {
+        BOOST_FOREACH (const ListenSocket& hListenSocket, vhListenSocket)
+        {
             FD_SET(hListenSocket.socket, &fdsetRecv);
             hSocketMax = max(hSocketMax, hListenSocket.socket);
             have_fds = true;
@@ -798,9 +1026,13 @@ void ThreadSocketHandler()
 
         {
             LOCK(cs_vNodes);
-            BOOST_FOREACH (CNode* pnode, vNodes) {
+            BOOST_FOREACH (CNode* pnode, vNodes)
+            {
                 if (pnode->hSocket == INVALID_SOCKET)
+                {
                     continue;
+                }
+
                 FD_SET(pnode->hSocket, &fdsetError);
                 hSocketMax = max(hSocketMax, pnode->hSocket);
                 have_fds = true;
@@ -822,31 +1054,42 @@ void ThreadSocketHandler()
                 // * We process a message in the buffer (message handler thread).
                 {
                     TRY_LOCK(pnode->cs_vSend, lockSend);
-                    if (lockSend && !pnode->vSendMsg.empty()) {
+                    if (lockSend && !pnode->vSendMsg.empty())
+                    {
                         FD_SET(pnode->hSocket, &fdsetSend);
                         continue;
                     }
                 }
+
                 {
                     TRY_LOCK(pnode->cs_vRecvMsg, lockRecv);
-                    if (lockRecv && (pnode->vRecvMsg.empty() || !pnode->vRecvMsg.front().complete() ||
-                                        pnode->GetTotalRecvSize() <= ReceiveFloodSize()))
+                    if (lockRecv && (pnode->vRecvMsg.empty()
+                        || !pnode->vRecvMsg.front().complete()
+                        || pnode->GetTotalRecvSize() <= ReceiveFloodSize()))
+                    {
                         FD_SET(pnode->hSocket, &fdsetRecv);
+                    }
                 }
             }
         }
 
         int nSelect = select(have_fds ? hSocketMax + 1 : 0,
             &fdsetRecv, &fdsetSend, &fdsetError, &timeout);
+
         boost::this_thread::interruption_point();
 
-        if (nSelect == SOCKET_ERROR) {
-            if (have_fds) {
+        if (nSelect == SOCKET_ERROR)
+        {
+            if (have_fds)
+            {
                 int nErr = WSAGetLastError();
                 LogPrintf("socket select error %s\n", NetworkErrorString(nErr));
                 for (unsigned int i = 0; i <= hSocketMax; i++)
+                {
                     FD_SET(i, &fdsetRecv);
+                }
             }
+
             FD_ZERO(&fdsetSend);
             FD_ZERO(&fdsetError);
             MilliSleep(timeout.tv_usec / 1000);
@@ -855,8 +1098,10 @@ void ThreadSocketHandler()
         //
         // Accept new connections
         //
-        BOOST_FOREACH (const ListenSocket& hListenSocket, vhListenSocket) {
-            if (hListenSocket.socket != INVALID_SOCKET && FD_ISSET(hListenSocket.socket, &fdsetRecv)) {
+        BOOST_FOREACH (const ListenSocket& hListenSocket, vhListenSocket)
+        {
+            if (hListenSocket.socket != INVALID_SOCKET && FD_ISSET(hListenSocket.socket, &fdsetRecv))
+            {
                 struct sockaddr_storage sockaddr;
                 socklen_t len = sizeof(sockaddr);
                 SOCKET hSocket = accept(hListenSocket.socket, (struct sockaddr*)&sockaddr, &len);
@@ -864,31 +1109,52 @@ void ThreadSocketHandler()
                 int nInbound = 0;
 
                 if (hSocket != INVALID_SOCKET)
+                {
                     if (!addr.SetSockAddr((const struct sockaddr*)&sockaddr))
+                    {
                         LogPrintf("Warning: Unknown socket family\n");
+                    }
+                }
 
                 bool whitelisted = hListenSocket.whitelisted || CNode::IsWhitelistedRange(addr);
                 {
                     LOCK(cs_vNodes);
                     BOOST_FOREACH (CNode* pnode, vNodes)
+                    {
                         if (pnode->fInbound)
+                        {
                             nInbound++;
+                        }
+
+                    }
                 }
 
-                if (hSocket == INVALID_SOCKET) {
+                if (hSocket == INVALID_SOCKET)
+                {
                     int nErr = WSAGetLastError();
                     if (nErr != WSAEWOULDBLOCK)
+                    {
                         LogPrintf("socket error accept failed: %s\n", NetworkErrorString(nErr));
-                } else if (!IsSelectableSocket(hSocket)) {
+                    }
+
+                }
+                else if (!IsSelectableSocket(hSocket))
+                {
                     LogPrintf("connection from %s dropped: non-selectable socket\n", addr.ToString());
                     CloseSocket(hSocket);
-                } else if (nInbound >= nMaxConnections - MAX_OUTBOUND_CONNECTIONS) {
+                }
+                else if (nInbound >= nMaxConnections - MAX_OUTBOUND_CONNECTIONS)
+                {
                     LogPrint("net", "connection from %s dropped (full)\n", addr.ToString());
                     CloseSocket(hSocket);
-                } else if (CNode::IsBanned(addr) && !whitelisted) {
+                }
+                else if (CNode::IsBanned(addr) && !whitelisted)
+                {
                     LogPrintf("connection from %s dropped (banned)\n", addr.ToString());
                     CloseSocket(hSocket);
-                } else {
+                }
+                else
+                {
                     CNode* pnode = new CNode(hSocket, addr, "", true);
                     pnode->AddRef();
                     pnode->fWhitelisted = whitelisted;
@@ -909,41 +1175,65 @@ void ThreadSocketHandler()
             LOCK(cs_vNodes);
             vNodesCopy = vNodes;
             BOOST_FOREACH (CNode* pnode, vNodesCopy)
+            {
                 pnode->AddRef();
+            }
         }
-        BOOST_FOREACH (CNode* pnode, vNodesCopy) {
+
+        BOOST_FOREACH (CNode* pnode, vNodesCopy)
+        {
             boost::this_thread::interruption_point();
 
             //
             // Receive
             //
             if (pnode->hSocket == INVALID_SOCKET)
+            {
                 continue;
-            if (FD_ISSET(pnode->hSocket, &fdsetRecv) || FD_ISSET(pnode->hSocket, &fdsetError)) {
+            }
+
+            if (FD_ISSET(pnode->hSocket, &fdsetRecv) || FD_ISSET(pnode->hSocket, &fdsetError))
+            {
                 TRY_LOCK(pnode->cs_vRecvMsg, lockRecv);
-                if (lockRecv) {
+                if (lockRecv)
+                {
                     {
                         // typical socket buffer is 8K-64K
                         char pchBuf[0x10000];
                         int nBytes = recv(pnode->hSocket, pchBuf, sizeof(pchBuf), MSG_DONTWAIT);
-                        if (nBytes > 0) {
+                        if (nBytes > 0)
+                        {
                             if (!pnode->ReceiveMsgBytes(pchBuf, nBytes))
+                            {
                                 pnode->CloseSocketDisconnect();
+                            }
+
                             pnode->nLastRecv = GetTime();
                             pnode->nRecvBytes += nBytes;
                             pnode->RecordBytesRecv(nBytes);
-                        } else if (nBytes == 0) {
+                        }
+                        else if (nBytes == 0)
+                        {
                             // socket closed gracefully
                             if (!pnode->fDisconnect)
+                            {
                                 LogPrint("net", "socket closed\n");
-                            pnode->CloseSocketDisconnect();
-                        } else if (nBytes < 0) {
+                                pnode->CloseSocketDisconnect();
+                            }
+
+                        }
+                        else if (nBytes < 0)
+                        {
                             // error
                             int nErr = WSAGetLastError();
-                            if (nErr != WSAEWOULDBLOCK && nErr != WSAEMSGSIZE && nErr != WSAEINTR && nErr != WSAEINPROGRESS) {
+                            if (nErr != WSAEWOULDBLOCK && nErr != WSAEMSGSIZE && nErr != WSAEINTR && nErr != WSAEINPROGRESS)
+                            {
                                 if (!pnode->fDisconnect)
+                                {
                                     LogPrintf("socket recv error %s\n", NetworkErrorString(nErr));
-                                pnode->CloseSocketDisconnect();
+                                    pnode->CloseSocketDisconnect();
+                                }
+
                             }
                         }
                     }
@@ -954,39 +1244,82 @@ void ThreadSocketHandler()
             // Send
             //
             if (pnode->hSocket == INVALID_SOCKET)
+            {
                 continue;
-            if (FD_ISSET(pnode->hSocket, &fdsetSend)) {
+            }
+
+            if (FD_ISSET(pnode->hSocket, &fdsetSend))
+            {
                 TRY_LOCK(pnode->cs_vSend, lockSend);
                 if (lockSend)
+                {
                     SocketSendData(pnode);
+                }
             }
 
             //
             // Inactivity checking
             //
-            int64_t nTime = GetTime();
-            if (nTime - pnode->nTimeConnected > 60) {
-                if (pnode->nLastRecv == 0 || pnode->nLastSend == 0) {
+
+            if (nTime - pnode->nTimeConnected > IDLE_TIMEOUT)
+            {
+                if (pnode->nLastRecv == 0 || pnode->nLastSend == 0)
+                {
                     LogPrint("net", "socket no message in first 60 seconds, %d %d from %d\n", pnode->nLastRecv != 0, pnode->nLastSend != 0, pnode->id);
-                    pnode->fDisconnect = true;
-                } else if (nTime - pnode->nLastSend > TIMEOUT_INTERVAL) {
-                    LogPrintf("socket sending timeout: %is\n", nTime - pnode->nLastSend);
-                    pnode->fDisconnect = true;
-                } else if (nTime - pnode->nLastRecv > (pnode->nVersion > BIP0031_VERSION ? TIMEOUT_INTERVAL : 90 * 60)) {
-                    LogPrintf("socket receive timeout: %is\n", nTime - pnode->nLastRecv);
-                    pnode->fDisconnect = true;
-                } else if (pnode->nPingNonceSent && pnode->nPingUsecStart + TIMEOUT_INTERVAL * 1000000 < GetTimeMicros()) {
-                    LogPrintf("ping timeout: %fs\n", 0.000001 * (GetTimeMicros() - pnode->nPingUsecStart));
-                    pnode->fDisconnect = true;
+                    DisconnectIdle = true;
                 }
+                if (nTime - pnode->nLastSend > DATA_TIMEOUT)
+                {
+                    LogPrintf("socket sending timeout: %is\n", nTime - pnode->nLastSend);
+                    DisconnectIdle = true;
+                }
+                if (nTime - pnode->nLastRecv > DATA_TIMEOUT)
+                {
+                    LogPrintf("socket receive timeout: %is\n", nTime - pnode->nLastRecv);
+                    DisconnectIdle = true;
+                }
+                if (pnode->nPingNonceSent && pnode->nPingUsecStart + TIMEOUT_INTERVAL * 1000000 < GetTimeMicros())
+                {
+                    LogPrintf("ping timeout: %fs\n", 0.000001 * (GetTimeMicros() - pnode->nPingUsecStart));
+                    DisconnectIdle = true;
+                }
+
+                if (DisconnectIdle == true)
+                {
+                    // remove from vNodes
+                    vNodes.erase(remove(vNodes.begin(), vNodes.end(), pnode), vNodes.end());
+
+                    // release outbound grant (if any)
+                    pnode->grantOutbound.Release();
+
+                    // close socket and cleanup
+                    pnode->CloseSocketDisconnect();
+
+                    // hold in disconnected pool until all refs are released
+                    if (pnode->fNetworkNode || pnode->fInbound)
+                    {
+                        pnode->Release();
+                        vNodesDisconnected.push_back(pnode);
+                    }
+
+                }
+                
             }
         }
+
         {
             LOCK(cs_vNodes);
             BOOST_FOREACH (CNode* pnode, vNodesCopy)
+            {
                 pnode->Release();
+            }
+
         }
     }
+
+    // Refresh nodes/peers every X minutes
+    RefreshRecentConnections(REFRESH_CONNECTIONS);
+
 }
 
 
@@ -1151,6 +1484,8 @@ void DumpAddresses()
     LogPrint("net", "Flushed %d addresses to peers.dat  %dms\n",
         addrman.size(), GetTimeMillis() - nStart);
 }
+
+
 
 void static ProcessOneShot()
 {
@@ -1349,12 +1684,23 @@ bool OpenNetworkConnection(const CAddress& addrConnect, CSemaphoreGrant* grantOu
     boost::this_thread::interruption_point();
 
     if (!pnode)
+    {
         return false;
+    }
+
+    FireWall(pnode, "OpenNetConnection");
+
     if (grantOutbound)
+    {
         grantOutbound->MoveTo(pnode->grantOutbound);
+    }
+        
     pnode->fNetworkNode = true;
+
     if (fOneShot)
+    {
         pnode->fOneShot = true;
+    }
 
     return true;
 }

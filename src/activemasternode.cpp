@@ -485,6 +485,7 @@ bool CActiveMasternode::EnableHotColdMasterNode(CTxIn& newVin, CService& newServ
     if (!fMasterNode) return false;
 
     status = ACTIVE_MASTERNODE_STARTED;
+    notCapableReason = "";
 
     //The values below are needed for signing mnping messages going forward
     vin = newVin;

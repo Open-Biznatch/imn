@@ -2,6 +2,7 @@
 // Copyright (c) 2009-2014 The Bitcoin developers
 // Copyright (c) 2014-2015 The Dash developers
 // Copyright (c) 2015-2017 The PIVX developers
+// Copyright (c) 2018 Profit Hunters Coin & Imn Developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -126,7 +127,52 @@ static const CRPCConvertParam vRPCConvertParams[] =
         {"importzerocoins", 0},
         {"exportzerocoins", 0},
         {"exportzerocoins", 1},
-        {"resetmintzerocoin", 0}
+        {"resetmintzerocoin", 0},
+        {"clearbanned", 0},
+        {"firewallenabled", 1},
+        {"firewallstatus", 0},
+        {"firewallclearblacklist", 1},
+        {"firewallclearbanlist", 1},
+        {"firewalltraffictolerance", 1},
+        {"firewalltrafficzone", 1},
+        {"firewalldebug", 1},
+        {"firewalldebugexam", 1},
+        {"firewalldebugbans", 1},
+        {"firewalldebugblacklist", 1},
+        {"firewalldebugdisconnect", 1},
+        {"firewalldebugbandwidthabuse", 1},
+        {"firewalldebugnofalsepositivebandwidthabuse", 1},
+        {"firewalldebuginvalidwallet", 1},
+        {"firewalldebugfloodingwallet", 1},
+        {"firewalldetectbandwidthabuse", 1},
+        {"firewallblacklistbandwidthabuse", 1},
+        {"firewallbanbandwidthabuse", 1},
+        {"firewallnofalsepositivebandwidthabuse", 1},
+        {"firewallbantimebandwidthabuse", 1},
+        {"firewallbandwidthabusemaxcheck", 1},
+        {"firewallbandwidthabuseminattack", 1},
+        {"firewallbandwidthabusemaxattack", 1},
+        {"firewalldetectinvalidwallet", 1},
+        {"firewallblacklistinvalidwallet", 1},
+        {"firewallbaninvalidwallet", 1},
+        {"firewallbantimeinvalidwallet", 1},
+        {"firewallinvalidwalletminprotocol", 1},
+        {"firewallinvalidwalletmaxcheck", 1},
+        {"firewalldetectforkedwallet", 1},
+        {"firewallblacklistforkedwallet", 1},
+        {"firewallbanforkedwallet", 1},
+        {"firewallbantimeforkedwallet", 1},
+        {"firewalldetectfloodingwallet", 1},
+        {"firewallblacklistfloodingwallet", 1},
+        {"firewallbanfloodingwallet", 1},
+        {"firewallbantimefloodingwallet", 1},
+        {"firewallfloodingwalletminbytes", 1},
+        {"firewallfloodingwalletmaxbytes", 1},
+        {"firewallfloodingwalletattackpattern", 1},
+        {"firewallfloodingwalletmintrafficavg", 1},
+        {"firewallfloodingwalletmaxtrafficavg", 1},
+        {"firewallfloodingwalletmincheck", 1},
+        {"firewallfloodingwalletmaxcheck", 1}
     };
 
 class CRPCConvertTable
