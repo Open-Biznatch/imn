@@ -2,8 +2,8 @@
 static char * bitcoin256_xpm[] = {
 "256 256 3 1",
 " 	c None",
-".	c #58585A",
-"+	c #F7941E",
+".	c #5CD06F",
+"+	c #5DB69A",
 "                                                                                                                                                                                                                                                                ",
 "                                                                                                                                                                                                                                                                ",
 "                                                                                                                                                                                                                                                                ",
