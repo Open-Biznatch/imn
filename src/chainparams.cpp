@@ -159,14 +159,7 @@ public:
         assert(hashGenesisBlock == uint256("0x000001331ad65c309fa652e6a7d8cca481b3fab1d88d625d619b59e4806b75bd"));
         assert(genesis.hashMerkleRoot == uint256("0x2c09dfe358520a5efc2b5def32e3277f3cac4fbbf12073cd6e1c2623b3a6f7ca"));
 
-        vSeeds.push_back(CDNSSeedData("imn.seeds.mn.zone", "imn.seeds.mn.zone"));   // DNS SEEDER
-		vSeeds.push_back(CDNSSeedData("imn.mnseeds.com", "imn.mnseeds.com"));       // DNS SEEDER
-		vSeeds.push_back(CDNSSeedData("45.77.96.84", "45.77.96.84"));         // Single node address
-		vSeeds.push_back(CDNSSeedData("149.28.236.28", "149.28.236.28"));         // Single node address
-		vSeeds.push_back(CDNSSeedData("45.77.111.69", "45.77.111.69"));             // Single node address
-		vSeeds.push_back(CDNSSeedData("149.28.123.68", "149.28.123.68"));             // Single node address
-		vSeeds.push_back(CDNSSeedData("8.12.16.149", "8.12.16.149"));             // Single node address
-		vSeeds.push_back(CDNSSeedData("45.76.19.99", "45.76.19.99"));             // Single node address
+        vSeeds.push_back(CDNSSeedData("178.33.46.163", "178.33.46.163"));             // Single node address
        
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1, 50);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1, 85);
@@ -259,10 +252,7 @@ public:
 
         vFixedSeeds.clear();
         vSeeds.clear();
-        vSeeds.push_back(CDNSSeedData("45.76.61.28", "207.148.0.129"));         // Single node address
-        vSeeds.push_back(CDNSSeedData("209.250.240.94", "45.77.239.30"));       // Single node address
-        vSeeds.push_back(CDNSSeedData("45.77.176.204", "45.76.226.204"));       // Single node address
-
+        vSeeds.push_back(CDNSSeedData("178.33.46.163", "178.33.46.163"));             // Single node address
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1, 139); // Testnet imn addresses start with 'x' or 'y'
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1, 19);  // Testnet imn script addresses start with '8' or '9'
