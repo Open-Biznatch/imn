@@ -128,10 +128,12 @@ WalletFrame {
     outline:0; /* Remove Annoying Focus Rectangle */
     }
     
+    /*
     QGroupBox {
     background-color:#5db69a;
     color:#333;
     }
+    */
     
     QToolTip {
     background-color:#5db69a;
@@ -178,7 +180,7 @@ WalletFrame {
     outline:0;
     padding:3px;
     background-color:#5db69a;
-    color:#333333;
+    color:#000000;
     }
     
     .QLineEdit:!focus {
@@ -1315,7 +1317,7 @@ WalletFrame {
     
     QDialog#SendCoinsDialog .QFrame#frameCoinControl > .QLabel { /* Default Font Color and  Size */
     font-weight:normal;
-    color:#5db69a;
+    color:#000000;
     }
     
     QDialog#SendCoinsDialog .QFrame#frameCoinControl .QPushButton#pushButtonCoinControl { /* Coin Control Inputs Button */
@@ -1325,7 +1327,7 @@ WalletFrame {
     }
     
     QDialog#SendCoinsDialog .QFrame#frameCoinControl .QLabel#labelCoinControlFeatures { /* Coin Control Header */
-    color:#5db69a;
+    color:#000000;
     font-weight:bold;
     font-size:14px;
     }
@@ -1335,7 +1337,7 @@ WalletFrame {
     
     QDialog#SendCoinsDialog .QFrame#frameCoinControl .QWidget#widgetCoinControl > .QLabel { /* Coin Control Inputs Labels */
     padding:2px;
-    color:#5db69a;
+    color:#000000;
     }
     
     QDialog#SendCoinsDialog .QFrame#frameCoinControl .QCheckBox#checkBoxCoinControlChange { /* Custom Change Label */
@@ -1363,14 +1365,14 @@ WalletFrame {
     QDialog#SendCoinsDialog .QPushButton#clearButton { /* Clear Button */
     background-color:qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: .01 #f6f6f6, stop: .1 rgba(250, 250, 250, 128), stop: .95 rgba(250, 250, 250, 255), stop: 1 #ebebeb);
     border:1px solid #d2d2d2;
-    color:#000000;
+    color: #5db69a;
     padding-left:10px;
     padding-right:10px;
     }
     
     QDialog#SendCoinsDialog .QPushButton#clearButton:hover {
     background-color:qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: .01 #f6f6f6, stop: .1 rgba(240, 240, 240, 255), stop: .95 rgba(240, 240, 240, 255), stop: 1 #ebebeb);
-    color:#000000;
+    color: #5db69a;
     }
     
     QDialog#SendCoinsDialog .QPushButton#clearButton:pressed {
@@ -1380,14 +1382,14 @@ WalletFrame {
     QDialog#SendCoinsDialog .QPushButton#addButton { /* Add Button */
     background-color:qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: .01 #f6f6f6, stop: .1 rgba(250, 250, 250, 128), stop: .95 rgba(250, 250, 250, 255), stop: 1 #ebebeb);
     border:1px solid #d2d2d2;
-    color:#000000;
+    color: #5db69a;
     padding-left:10px;
     padding-right:10px;
     }
     
     QDialog#SendCoinsDialog .QPushButton#addButton:hover {
     background-color:qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: .01 #f6f6f6, stop: .1 rgba(240, 240, 240, 255), stop: .95 rgba(240, 240, 240, 255), stop: 1 #ebebeb);
-    color:#000000;
+    color: #5db69a;
     }
     
     QDialog#SendCoinsDialog .QPushButton#addButton:pressed {
@@ -1573,7 +1575,7 @@ WalletFrame {
     }
     
     QDialog#CoinControlDialog .QFrame#frame .QRadioButton#radioListMode { /* Coin Control List Mode Selector */
-        color:#5db69a;
+    color:#5db69a;
     background-color:transparent;
     }
     
@@ -1661,7 +1663,7 @@ WalletFrame {
     QWidget#ReceiveCoinsDialog .QFrame#frame2 QPushButton#clearButton { /* Clear Button */
     background-color:qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: .01 #f6f6f6, stop: .1 rgba(250, 250, 250, 128), stop: .95 rgba(250, 250, 250, 255), stop: 1 #ebebeb);
     border:1px solid #d2d2d2;
-    color:#000000;
+    color: #000000;
     padding-left:10px;
     padding-right:10px;
     }
@@ -1678,7 +1680,7 @@ WalletFrame {
     QWidget#ReceiveCoinsDialog .QFrame#frame QPushButton#showRequestButton { /* Show Button */
     background-color:qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: .01 #f6f6f6, stop: .1 rgba(250, 250, 250, 128), stop: .95 rgba(250, 250, 250, 255), stop: 1 #ebebeb);
     border:1px solid #d2d2d2;
-    color:#000000;
+    color: #000000;
     padding-left:10px;
     padding-right:10px;
     }
@@ -1695,14 +1697,14 @@ WalletFrame {
     QWidget#ReceiveCoinsDialog .QFrame#frame QPushButton#removeRequestButton { /* Remove Button */
     background-color:qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: .01 #f6f6f6, stop: .1 rgba(250, 250, 250, 128), stop: .95 rgba(250, 250, 250, 255), stop: 1 #ebebeb);
     border:1px solid #d2d2d2;
-    color:#000000;
+    color: #000000;
     padding-left:10px;
     padding-right:10px;
     }
     
     QWidget#ReceiveCoinsDialog .QFrame#frame QPushButton#removeRequestButton:hover {
     background-color:qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: .01 #f6f6f6, stop: .1 rgba(240, 240, 240, 255), stop: .95 rgba(240, 240, 240, 255), stop: 1 #ebebeb);
-    color:#000000;
+    color: #000000;
     }
     
     QWidget#ReceiveCoinsDialog .QFrame#frame QPushButton#removeRequestButton:pressed {
@@ -1736,12 +1738,12 @@ WalletFrame {
     }
     
     QLabel#transactionSumLabel { /* Example of setObjectName for widgets without name */
-    color:#333333;
+    color:#ffff;
     font-weight:bold;
     }
      
     QLabel#transactionSum { /* Example of setObjectName for widgets without name */
-    color:#333333;
+    color:#fffff;
     }
     
     /**************************** TRANSACTION DETAILS DIALOG ********************************/
@@ -1767,7 +1769,7 @@ WalletFrame {
     }
     
     QCalendarWidget QAbstractItemView:enabled { /* Calendar widget weekdays in month */
-    color:#333;
+    color:#fff;
     }
     
     QCalendarWidget QAbstractItemView:disabled { /* Calendar widget days not in month */
