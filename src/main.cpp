@@ -80,7 +80,26 @@ bool fVerifyingBlocks = false;
 unsigned int nCoinCacheSize = 5000;
 bool fAlerts = DEFAULT_ALERTS;
 
-unsigned int nStakeMinAge = 60 * 60; // 60 Minutes // 60 Blocks
+/* IMN Fork */
+int IMNStakeMinAge()
+{
+    int minage;
+
+    LOCK(cs_main);
+    if (chainActive.Height() <= 109823)
+    {
+        minage = 25 * 60; // 25 Minutes // 25 blocks
+    }
+    else
+    {
+        minage = 60 * 60; // 60 Minutes // 60 Blocks
+    }
+
+    return minage;
+}
+
+unsigned int nStakeMinAge = IMNStakeMinAge();
+
 int64_t nReserveBalance = 0;
 
 /** Fees smaller than this (in duffs) are considered zero fee (for relaying and mining)
@@ -499,6 +518,16 @@ void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vector<CBl
     // download that next block if the window were 1 larger.
     int nWindowEnd = state->pindexLastCommonBlock->nHeight + BLOCK_DOWNLOAD_WINDOW;
     int nMaxHeight = std::min<int>(state->pindexBestKnownBlock->nHeight, nWindowEnd + 1);
+
+    LOCK(cs_vNodes);
+    BOOST_FOREACH(CNode* pnode, vNodes)
+    {
+        if (pnode->id == nodeid)
+        {
+            pnode->nSyncHeight = state->pindexBestKnownBlock->nHeight;
+        }
+    }
+
     NodeId waitingfor = -1;
     while (pindexWalk->nHeight < nMaxHeight) {
         // Read up to 128 (or more, if more blocks than that are needed) successors of pindexWalk (towards
@@ -2132,22 +2161,31 @@ int64_t GetBlockValue(int nHeight)
         nSubsidy = 1 * COIN;
     } else if (nHeight < 50000 && nHeight > 200) {
         nSubsidy = 80 * COIN;
-        } else if (nHeight < 100000 && nHeight > 50000) {
+    } else if (nHeight < 100000 && nHeight > 50000) {
         nSubsidy = 70 * COIN;
-        } else if (nHeight < 107000 && nHeight > 100000) {
+    } else if (nHeight < 150000 && nHeight > 100000) {
         nSubsidy = 60 * COIN;
-        } else if (nHeight < 108000 && nHeight > 107000) {
+    } else if (nHeight < 165000 && nHeight > 150000) {
         nSubsidy = 600 * COIN;
-        } else if (nHeight < 120000 && nHeight > 108000) {
+    } else if (nHeight < 200000 && nHeight > 165000) {
         nSubsidy = 100 * COIN;
-        } else if (nHeight < 12000000 && nHeight > 120000) {
-        nSubsidy = 22 * COIN;
+    } else if (nHeight < 250000 && nHeight > 200000) {
+        nSubsidy = 50 * COIN;
+    } else if (nHeight < 300000 && nHeight > 250000) {
+        nSubsidy = 40 * COIN;
+    } else if (nHeight < 400000 && nHeight > 300000) {
+        nSubsidy = 30 * COIN;
+    } else if (nHeight < 500000 && nHeight > 400000) {
+        nSubsidy = 20 * COIN;
+    } else if (nHeight < 1000000 && nHeight > 500000) {
+        nSubsidy = 10 * COIN;
+    } else if (nHeight < 6618014 && nHeight > 1000000) {
+        nSubsidy = 5 * COIN;
     } else {
         nSubsidy = 0.00005 * COIN; // Must cover fees + MN payment to not cause$
     }
     return nSubsidy;
 }
-
 
 int64_t GetMasternodePayment(int nHeight, int64_t blockValue, int nMasternodeCount)
 {
@@ -2159,13 +2197,19 @@ int64_t GetMasternodePayment(int nHeight, int64_t blockValue, int nMasternodeCou
     }
 	
 	// 90% for Masternodes - 10% POS
-	if (nHeight == 0) {
-	      ret = blockValue  / 100 * 0;
-	} else if (nHeight > 1) {
-		  ret = blockValue  / 100 * 90;
-		
-	}
-			
+	if (nHeight == 0)
+    {
+	    ret = blockValue  / 100 * 0;
+	} else if (nHeight > 1 && nHeight < 1000)
+    {
+		ret = blockValue  / 100;
+	} else if (nHeight > 999 && nHeight < 2881)
+    {
+		ret = blockValue  / 100 * 90;
+	} else if (nHeight > 2880)
+    {
+		ret = blockValue  / 100 * 20;
+	}	
 	
     return ret;
 }
