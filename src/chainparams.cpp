@@ -117,6 +117,7 @@ public:
         nTargetSpacing = 1 * 64;  // Imn: 64 Seconds
         nMaturity = 5;
         nMasternodeCountDrift = 20;
+        nMasternodeCollateral = 50000;
         nMaxMoneyOut = 210000000 * COIN;
 
         /** Height or Time Based Activations **/

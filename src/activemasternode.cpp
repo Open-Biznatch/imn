@@ -1,5 +1,6 @@
 // Copyright (c) 2014-2016 The Dash developers
 // Copyright (c) 2015-2017 The PIVX developers
+// Copyright (c) 2018 The IMN developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -12,7 +13,7 @@
 #include "spork.h"
 
 //
-// Bootup the Masternode, look for a 50000 IMN input and register on the network
+// Bootup the Masternode, look for a 2000 VLS input and register on the network
 //
 void CActiveMasternode::ManageStatus()
 {
@@ -67,15 +68,20 @@ void CActiveMasternode::ManageStatus()
             service = CService(strMasterNodeAddr);
         }
 
-        if (Params().NetworkID() == CBaseChainParams::MAIN) {
-            if (service.GetPort() != 37788) {
-                notCapableReason = strprintf("Invalid port: %u - only 37788 is supported on mainnet.", service.GetPort());
-                LogPrintf("CActiveMasternode::ManageStatus() - not capable: %s\n", notCapableReason);
+        int mainnetDefaultPort = Params(CBaseChainParams::MAIN).GetDefaultPort();
+        if (Params().NetworkID() == CBaseChainParams::MAIN)
+        {
+            if (service.GetPort() != mainnetDefaultPort)
+            {
+                errorMessage = strprintf("Invalid port: %u - only %d is supported on mainnet.", service.GetPort(), mainnetDefaultPort);
+                LogPrintf("CActiveMasternode::ManageStatus() - not capable: %s\n", errorMessage);
                 return;
             }
-        } else if (service.GetPort() == 37788) {
-            notCapableReason = strprintf("Invalid port: %u - 37788 is only supported on mainnet.", service.GetPort());
-            LogPrintf("CActiveMasternode::ManageStatus() - not capable: %s\n", notCapableReason);
+        }
+        else if (service.GetPort() == mainnetDefaultPort)
+        {
+            errorMessage = strprintf("Invalid port: %u - %d is only supported on mainnet.", service.GetPort(), mainnetDefaultPort);
+            LogPrintf("CActiveMasternode::ManageStatus() - not capable: %s\n", errorMessage);
             return;
         }
 
@@ -266,15 +272,16 @@ bool CActiveMasternode::Register(std::string strService, std::string strKeyMaste
     }
 
     CService service = CService(strService);
+    int mainnetDefaultPort = Params(CBaseChainParams::MAIN).GetDefaultPort();
     if (Params().NetworkID() == CBaseChainParams::MAIN) {
-        if (service.GetPort() != 37788) {
-            errorMessage = strprintf("Invalid port %u for masternode %s - only 37788 is supported on mainnet.", service.GetPort(), strService);
-            LogPrintf("CActiveMasternode::Register() - %s\n", errorMessage);
+        if (service.GetPort() != mainnetDefaultPort) {
+            errorMessage = strprintf("Invalid port: %u - only %d is supported on mainnet.", service.GetPort(), mainnetDefaultPort);
+            LogPrintf("CActiveMasternode::ManageStatus() - not capable: %s\n", errorMessage);
             return false;
         }
-    } else if (service.GetPort() == 37788) {
-        errorMessage = strprintf("Invalid port %u for masternode %s - 37788 is only supported on mainnet.", service.GetPort(), strService);
-        LogPrintf("CActiveMasternode::Register() - %s\n", errorMessage);
+    } else if (service.GetPort() == mainnetDefaultPort) {
+        errorMessage = strprintf("Invalid port: %u - %d is only supported on mainnet.", service.GetPort(), mainnetDefaultPort);
+        LogPrintf("CActiveMasternode::ManageStatus() - not capable: %s\n", errorMessage);
         return false;
     }
 
@@ -472,7 +479,7 @@ vector<COutput> CActiveMasternode::SelectCoinsMasternode()
 
     // Filter
     BOOST_FOREACH (const COutput& out, vCoins) {
-        if (out.tx->vout[out.i].nValue == 50000 * COIN) { //exactly
+        if (out.tx->vout[out.i].nValue == Params().MasternodeCollateral() * COIN) { //exactly
             filteredCoins.push_back(out);
         }
     }
@@ -485,7 +492,6 @@ bool CActiveMasternode::EnableHotColdMasterNode(CTxIn& newVin, CService& newServ
     if (!fMasterNode) return false;
 
     status = ACTIVE_MASTERNODE_STARTED;
-    notCapableReason = "";
 
     //The values below are needed for signing mnping messages going forward
     vin = newVin;
